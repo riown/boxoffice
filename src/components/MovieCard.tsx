@@ -96,6 +96,21 @@ export default function MovieCard({ movie, onClick, index }: MovieCardProps) {
               매출 점유율 <span className="font-semibold text-zinc-600 dark:text-zinc-400 font-mono">{movie.salesShare}%</span>
             </span>
           </div>
+
+          {/* Quick AI Review action pill button */}
+          <div className="mt-3">
+            <button
+              id={`review-btn-${movie.movieCd}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onClick(movie.movieCd);
+              }}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-50 px-3 py-1 text-2xs font-extrabold text-indigo-650 dark:bg-indigo-950/30 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/40 hover:bg-indigo-100 dark:hover:bg-indigo-950/70 transition cursor-pointer"
+            >
+              <Sparkles className="h-3 w-3 text-indigo-500 animate-pulse" />
+              감상평 작성
+            </button>
+          </div>
         </div>
       </div>
 

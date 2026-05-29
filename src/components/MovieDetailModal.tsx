@@ -1,6 +1,22 @@
 import { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { X, Clock, Video, Award, Film, Users, Languages, MapPin, Building, Activity, RotateCcw } from "lucide-react";
+import { 
+  X, 
+  Clock, 
+  Video, 
+  Award, 
+  Film, 
+  Users, 
+  Languages, 
+  MapPin, 
+  Building, 
+  Activity, 
+  RotateCcw,
+  Sparkles,
+  Copy,
+  Check,
+  MessageSquare
+} from "lucide-react";
 import { MovieInfo, MovieDetailResponse } from "../types";
 
 interface MovieDetailModalProps {
@@ -14,7 +30,25 @@ export default function MovieDetailModal({ movieCd, onClose }: MovieDetailModalP
   const [movieInfo, setMovieInfo] = useState<MovieInfo | null>(null);
   const modalRef = useRef<HTMLDivElement>(null);
 
+  // AI Review States
+  const [kw1, setKw1] = useState("");
+  const [kw2, setKw2] = useState("");
+  const [kw3, setKw3] = useState("");
+  const [reviewResult, setReviewResult] = useState("");
+  const [reviewLoading, setReviewLoading] = useState(false);
+  const [reviewError, setReviewError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
   useEffect(() => {
+    // Reset AI review states on movieCd changes
+    setKw1("");
+    setKw2("");
+    setKw3("");
+    setReviewResult("");
+    setReviewLoading(false);
+    setReviewError(null);
+    setCopied(false);
+
     if (!movieCd) {
       setMovieInfo(null);
       return;
@@ -56,6 +90,60 @@ export default function MovieDetailModal({ movieCd, onClose }: MovieDetailModalP
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [onClose]);
+
+  const handleGenerateReview = async () => {
+    if (!movieInfo) return;
+    if (!kw1.trim() && !kw2.trim() && !kw3.trim()) {
+      setReviewError("최소 하나의 핵심 키워드를 입력해 주세요.");
+      return;
+    }
+
+    setReviewLoading(true);
+    setReviewError(null);
+    setReviewResult("");
+    setCopied(false);
+
+    try {
+      const response = await fetch("/api/review", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          movieNm: movieInfo.movieNm,
+          keywords: [kw1, kw2, kw3].filter(k => k.trim() !== ""),
+          director: movieInfo.directors?.[0]?.peopleNm,
+          actors: movieInfo.actors?.slice(0, 3).map(a => a.peopleNm).join(", "),
+          genre: movieInfo.genres?.map(g => g.genreNm).join(", ")
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error("AI 평론 작성을 시작하는 데 실패했습니다.");
+      }
+
+      const data = await response.json();
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      setReviewResult(data.review || "감상평 결과가 비어 있습니다.");
+    } catch (err: any) {
+      console.error(err);
+      setReviewError(err.message || "평론 생성 중 서버 통신 에러가 발생했습니다.");
+    } finally {
+      setReviewLoading(false);
+    }
+  };
+
+  const handleCopyToClipboard = async () => {
+    if (!reviewResult) return;
+    try {
+      await navigator.clipboard.writeText(reviewResult);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error("클립보드 복사 실패:", err);
+    }
+  };
 
   if (!movieCd) return null;
 
@@ -158,6 +246,110 @@ export default function MovieDetailModal({ movieCd, onClose }: MovieDetailModalP
                       </span>
                     )}
                   </div>
+                </div>
+
+                {/* AI Review Generator Section */}
+                <div className="rounded-2xl border border-indigo-100/50 bg-indigo-50/5 p-5 dark:border-indigo-950/20 dark:bg-indigo-950/5">
+                  <div className="flex items-center gap-2 text-indigo-650 dark:text-indigo-400 mb-3">
+                    <Sparkles className="h-4.5 w-4.5 text-indigo-500 animate-pulse" />
+                    <span className="text-sm font-bold tracking-tight">✨ AI 감상평 평론기</span>
+                  </div>
+                  
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-3.5 leading-relaxed">
+                    세 개의 핵심 키워드를 입력해 보세요! 영화의 세부 맥락과 입력된 단어들을 정교한 흐름으로 조합하여 Gemini가 깊이 있는 통찰이 담긴 평론을 지어 드립니다.
+                  </p>
+
+                  {/* 3 Side-by-Side Inputs */}
+                  <div className="grid grid-cols-3 gap-2.5 mb-3.5">
+                    <div>
+                      <input
+                        id="kw1"
+                        type="text"
+                        value={kw1}
+                        onChange={(e) => setKw1(e.target.value)}
+                        placeholder="키워드 1 (예: 전율)"
+                        className="w-full rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-xs font-medium focus:border-indigo-500 focus:outline-none dark:border-zinc-800 dark:bg-zinc-950 text-zinc-800 dark:text-zinc-100 placeholder:text-zinc-400"
+                      />
+                    </div>
+                    <div>
+                      <input
+                        id="kw2"
+                        type="text"
+                        value={kw2}
+                        onChange={(e) => setKw2(e.target.value)}
+                        placeholder="키워드 2 (예: 눈부신 영상미)"
+                        className="w-full rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-xs font-medium focus:border-indigo-500 focus:outline-none dark:border-zinc-800 dark:bg-zinc-950 text-zinc-800 dark:text-zinc-100 placeholder:text-zinc-400"
+                      />
+                    </div>
+                    <div>
+                      <input
+                        id="kw3"
+                        type="text"
+                        value={kw3}
+                        onChange={(e) => setKw3(e.target.value)}
+                        placeholder="키워드 3 (예: 여운)"
+                        className="w-full rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-xs font-medium focus:border-indigo-500 focus:outline-none dark:border-zinc-800 dark:bg-zinc-950 text-zinc-800 dark:text-zinc-100 placeholder:text-zinc-400"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Button + Error Row */}
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex-1">
+                      {reviewError && (
+                        <p className="text-2xs font-semibold text-rose-550 dark:text-rose-400">
+                          {reviewError}
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      id="generate-review-btn"
+                      onClick={handleGenerateReview}
+                      disabled={reviewLoading}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed px-4 py-2 text-2xs font-bold text-white cursor-pointer transition"
+                    >
+                      {reviewLoading ? (
+                        <>
+                          <div className="h-3 w-3 animate-spin rounded-full border border-white border-t-transparent" />
+                          <span>AI 평론 작성 중...</span>
+                        </>
+                      ) : (
+                        <>
+                          <MessageSquare className="h-3.5 w-3.5" />
+                          <span>감상평 쓰기</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* AI Generated Review Showcase */}
+                  <AnimatePresence>
+                    {reviewResult && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 10 }}
+                        className="mt-4 rounded-xl border border-indigo-100 bg-indigo-50/30 p-4 dark:border-indigo-900/30 dark:bg-indigo-950/20 relative"
+                      >
+                        <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 leading-relaxed pr-8">
+                          "{reviewResult}"
+                        </p>
+                        
+                        <button
+                          id="copy-review-btn"
+                          onClick={handleCopyToClipboard}
+                          className="absolute right-3.5 top-3.5 rounded-md p-1 text-zinc-400 hover:bg-zinc-200 dark:text-zinc-500 dark:hover:bg-zinc-800 transition"
+                          title="감상평 클립보드 복사"
+                        >
+                          {copied ? (
+                            <Check className="h-4 w-4 text-emerald-500" />
+                          ) : (
+                            <Copy className="h-4 w-4 text-zinc-400 hover:text-zinc-650 dark:hover:text-zinc-200" />
+                          )}
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
 
                 {/* Main Details Grid */}
