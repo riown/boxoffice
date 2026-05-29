@@ -275,20 +275,25 @@ export default function App() {
 
         {/* Loading Skeletons */}
         {loading ? (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="space-y-3.5">
             {[...Array(6)].map((_, idx) => (
               <div 
                 key={idx} 
-                className="animate-pulse rounded-2xl border border-zinc-100 bg-white p-6 shadow-sm dark:border-zinc-900 dark:bg-zinc-900/40 space-y-4"
+                className="animate-pulse rounded-xl border border-zinc-200 bg-white p-5 shadow-xs dark:border-zinc-850 dark:bg-zinc-900/20 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4"
               >
-                <div className="flex justify-between items-center">
-                  <div className="h-9 w-12 bg-zinc-200 dark:bg-zinc-800 rounded-lg" />
-                  <div className="h-5 w-14 bg-zinc-200 dark:bg-zinc-800 rounded-full" />
+                <div className="flex flex-1 items-center gap-4 sm:gap-6">
+                  {/* Rank block skeleton */}
+                  <div className="h-12 w-12 bg-zinc-200 dark:bg-zinc-800 rounded-lg shrink-0" />
+                  {/* Title and date text column skeleton */}
+                  <div className="flex-1 space-y-2">
+                    <div className="h-5 w-40 bg-zinc-200 dark:bg-zinc-800 rounded-md" />
+                    <div className="h-4 w-28 bg-zinc-200 dark:bg-zinc-800 rounded-md" />
+                  </div>
                 </div>
-                <div className="h-6 w-3/4 bg-zinc-200 dark:bg-zinc-800 rounded-md" />
-                <div className="space-y-2 pt-2 border-t border-zinc-50 dark:border-zinc-800">
-                  <div className="h-4 w-1/2 bg-zinc-200 dark:bg-zinc-800 rounded-md" />
-                  <div className="h-4 w-2/3 bg-zinc-200 dark:bg-zinc-800 rounded-md" />
+                {/* Numeric details row/col skeleton */}
+                <div className="flex gap-4 sm:gap-6 shrink-0">
+                  <div className="h-8 w-20 bg-zinc-200 dark:bg-zinc-800 rounded-md" />
+                  <div className="h-8 w-20 bg-zinc-200 dark:bg-zinc-800 rounded-md" />
                 </div>
               </div>
             ))}
@@ -323,8 +328,8 @@ export default function App() {
             </p>
           </div>
         ) : (
-          /* Grid container */
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          /* Vertical Column container */
+          <div className="space-y-3.5">
             {movies.map((movie, index) => (
               <MovieCard
                 key={movie.movieCd}
