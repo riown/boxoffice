@@ -58,11 +58,34 @@ export default function MovieDetailModal({ movieCd, onClose }: MovieDetailModalP
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch(`/api/movie?movieCd=${movieCd}`);
-        if (!response.ok) {
-          throw new Error("상세 정보를 가져오는 데 실패했습니다.");
+        const url = `/api/movie?movieCd=${movieCd}`;
+        let response;
+        let data: MovieDetailResponse = {};
+
+        try {
+          response = await fetch(url);
+          if (response.ok) {
+            const contentType = response.headers.get("content-type") || "";
+            if (contentType.includes("application/json")) {
+              data = await response.json();
+            } else {
+              throw new Error("HTTP proxy endpoint did not return application/json format");
+            }
+          } else {
+            throw new Error(`Proxy endpoint status: ${response.status}`);
+          }
+        } catch (proxyErr) {
+          console.warn("Proxy api endpoint for details failed, falling back to direct secure KOBIS API fetch:", proxyErr);
+          const fallbackApiKey = (import.meta as any).env.VITE_KOBIS_API_KEY || "c8c3a7ff168e1f60d6058a0d72ce0c86";
+          const fallbackUrl = `https://www.kobis.or.kr/kobisopenapi/webservice/rest/movie/searchMovieInfo.json?key=${fallbackApiKey}&movieCd=${movieCd}`;
+          
+          response = await fetch(fallbackUrl);
+          if (!response.ok) {
+            throw new Error("영진위 정보 조회 API 프록시 및 백엔드 직접 연결이 모두 실패했습니다.");
+          }
+          data = await response.json();
         }
-        const data: MovieDetailResponse = await response.json();
+
         if (data.error) {
           throw new Error(data.error);
         }

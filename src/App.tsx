@@ -82,12 +82,34 @@ export default function App() {
       const apiDateString = date.replace(/-/g, ""); // "2026-05-28" -> "20260528"
       const url = `/api/boxoffice?date=${apiDateString}`;
       
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error("영진위 오픈 API로부터 데이터를 가져오지 못했습니다.");
+      let response;
+      let data: BoxOfficeResponse = {};
+      
+      try {
+        response = await fetch(url);
+        if (response.ok) {
+          const contentType = response.headers.get("content-type") || "";
+          if (contentType.includes("application/json")) {
+            data = await response.json();
+          } else {
+            throw new Error("HTTP endpoint did not return application/json format");
+          }
+        } else {
+          throw new Error(`Proxy endpoint status: ${response.status}`);
+        }
+      } catch (proxyErr) {
+        console.warn("Proxy api endpoint failed, falling back to direct secure KOBIS API fetch:", proxyErr);
+        // Direct Client-Side Fallback fetch using https endpoint
+        const fallbackApiKey = (import.meta as any).env.VITE_KOBIS_API_KEY || "c8c3a7ff168e1f60d6058a0d72ce0c86";
+        const fallbackUrl = `https://kobis.or.kr/kobisopenapi/webservice/rest/boxoffice/searchDailyBoxOfficeList.json?key=${fallbackApiKey}&targetDt=${apiDateString}`;
+        
+        response = await fetch(fallbackUrl);
+        if (!response.ok) {
+          throw new Error("영진위 오픈 API로부터 데이터를 가져오지 못했습니다. 프록시 서버 및 백엔드 직접 연결이 모두 제한되었습니다.");
+        }
+        data = await response.json();
       }
       
-      const data: BoxOfficeResponse = await response.json();
       if (data.error) {
         throw new Error(data.error);
       }
@@ -95,7 +117,7 @@ export default function App() {
       if (data.boxOfficeResult?.dailyBoxOfficeList) {
         setMovies(data.boxOfficeResult.dailyBoxOfficeList);
       } else {
-        setMovies([]);
+         setMovies([]);
       }
     } catch (err: any) {
       console.error(err);
